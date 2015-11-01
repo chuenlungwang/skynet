@@ -32,6 +32,7 @@ spinlock_unlock(struct spinlock *lock) {
 	__sync_lock_release(&lock->lock);
 }
 
+/* 在 gcc 内置的自旋锁的情况下是不需要销毁的，所以简单转为 void，表示有意传入却未使用的参数 */
 static inline void
 spinlock_destroy(struct spinlock *lock) {
 	(void) lock;
@@ -43,6 +44,8 @@ spinlock_destroy(struct spinlock *lock) {
 
 // we use mutex instead of spinlock for some reason
 // you can also replace to pthread_spinlock
+
+/* 互斥锁的方式是阻塞的，并不是自旋的 */
 
 struct spinlock {
 	pthread_mutex_t lock;

@@ -781,8 +781,11 @@ skynet_globalexit(void) {
 	pthread_key_delete(G_NODE.handle_key);
 }
 
+/* 完成对当前线程的初始化. 传入参数为当前线程所属类别. 此函数应该在线程初始化的最后一步调用. */
 void
 skynet_initthread(int m) {
+	/* 将当前线程所属类别转化为一个区别于任何服务 id 的值, 并保存至
+	   线程特定数据 handle_key 中以备后续取出使用. */
 	uintptr_t v = (uint32_t)(-m);
 	pthread_setspecific(G_NODE.handle_key, (void *)v);
 }
