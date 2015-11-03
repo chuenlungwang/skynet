@@ -50,7 +50,7 @@ log_blob(FILE *f, void * buffer, size_t sz) {
 	}
 }
 
-/* 输出 socket 消息至日志文件中. 同时会打印消息的来源.
+/* 输出 socket 消息至日志文件中. 同时会打印消息的元信息.
  * 参数 f 为日志文件, message 代表一个 socket 消息, sz 是消息内容的大小. */
 static void
 log_socket(FILE * f, struct skynet_socket_message * message, size_t sz) {
