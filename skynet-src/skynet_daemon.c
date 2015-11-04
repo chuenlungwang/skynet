@@ -82,7 +82,7 @@ write_pid(const char *pidfile) {
 }
 
 /* 将当前进程设置为守护进程, 参数 pidfile 表示将会写入进程号的文件路径. 此函数在 OS X 环境下无效.
- * 此方法只在进程启动时执行一次. 设置成功返回 0 , 失败返回 1 .
+ * 此函数只在进程启动时执行一次. 设置成功返回 0 , 失败返回 1 .
  * 如果 pidfile 文件中其它正在运行的进程号, 或者无法设置当前进程为守护进程,
  * 又或者无法将当前进程号写入 pidfile 时都将失败. */
 int
@@ -112,7 +112,7 @@ daemon_init(const char *pidfile) {
 	return 0;
 }
 
-/* 执行守护进程清理动作, 这个函数会以安全方式删除 pidfile 文件. 此方法只在进程退出时执行一次. */
+/* 执行守护进程清理动作, 这个函数会以安全方式删除 pidfile 文件. 此函数只在进程退出时执行一次. */
 int 
 daemon_exit(const char *pidfile) {
 	return unlink(pidfile);
