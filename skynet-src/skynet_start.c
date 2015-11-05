@@ -56,7 +56,7 @@ wakeup(struct monitor *m, int busy) {
 	}
 }
 
-/* socket 线程函数, 在初始化之后以阻塞方式等待 socket 事件, 直到有明确退出信号或者
+/* socket 线程函数, 在初始化之后以阻塞方式等待 socket 事件(包括对 socket 模块发送命令), 直到有明确退出信号或者
  * 所有服务都已经退出. 此函数会保证至少有一条工作线程来处理到达的 socket 事件.
  * 必须说明的是, 虽然 socket 线程以阻塞方式等待 socket 事件, 但 socket 连接上的读写都是非阻塞的. */
 static void *
