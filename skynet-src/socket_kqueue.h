@@ -15,7 +15,7 @@
  * 一直收到事件通知. 因此, 程序有时会禁止可写事件侦听.
  * 需要注意的是 bool 的类型定义是从 socket_poll.h 引入的. */
 
-/* 校验一个 kqueue 文件描述符是否有效. 有效时 false, 无效时返回 true. */
+/* 校验一个 kqueue 文件描述符是否无效. 有效时 false, 无效时返回 true. */
 static bool
 sp_invalid(int kfd) {
 	return kfd == -1;
