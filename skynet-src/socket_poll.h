@@ -3,12 +3,15 @@
 
 #include <stdbool.h>
 
+/* I/O 多路复用的文件描述符, 实现为在 Linux 为 epoll 文件描述符,
+ * 在 BSD 接口下为 kqueue 文件描述符. */
 typedef int poll_fd;
 
+/* 接收到的 I/O 事件通知 */
 struct event {
-	void * s;
-	bool read;
-	bool write;
+	void * s;      /* 事件通知中的用户数据, 与注册时添加的用户数据一模一样. */
+	bool read;     /* 可读事件标记 */
+	bool write;    /* 可写事件标记 */
 };
 
 static bool sp_invalid(poll_fd fd);

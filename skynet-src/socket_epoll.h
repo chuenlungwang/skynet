@@ -10,7 +10,9 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
-/* 此文件时 socket_poll.h 在 Linux 环境下的实现.
+/* 此文件时 socket_poll.h 在 Linux 环境下的实现 I/O 多路复用, 采用了 epoll 机制实现方式.
+ * 默认的实现方式是水平触发模式, 当某一 I/O 事件出现时若应用程序不处理此事件, 就会
+ * 不断收到事件通知. 因此, 程序有时会禁止可写事件侦听.
  * 需要注意的是 bool 的类型定义是从 socket_poll.h 引入的. */
 
 /* 检查 epoll 文件描述符是否无效. 有效时 false, 无效时返回 true. */
@@ -19,7 +21,7 @@ sp_invalid(int efd) {
 	return efd == -1;
 }
 
-/* 创建一个 epoll 文件描述符, 使用完之后需要调用 sp_release 释放文件描述符.
+/* 创建一个 epoll 实例, 使用完之后需要调用 sp_release 释放文件描述符.
  * 成功时返回 epoll 文件描述符用于接下来的工作, 失败时返回 -1 并设置相应的 errno.
  * 此函数保证返回的文件描述符至少可以同时侦听 1024 个文件描述符上的 I/O 事件. */
 static int
@@ -28,16 +30,17 @@ sp_create() {
 }
 
 /* 使用完 epoll 后释放 epoll 并关闭侦听文件描述符.
- * 在关闭此文件描述符前, 需要先调用 sp_del 移除正在侦听的文件描述符.
+ * [ck]在关闭此文件描述符前, 需要先调用 sp_del 移除正在侦听的文件描述符. [/ck]
  * 此函数只在使用完 epoll 后调用一次. */
 static void
 sp_release(int efd) {
 	close(efd);
 }
 
-/* 添加新的关联文件( socket 或者 pipe 的文件描述符 )到 efd 句柄中, 对关联文件的可读事件进行注册.
- * sock 是关联文件, ud 是与此关联文件的用户数据, 此用户数据在事件发生时访问.
- * 添加成功时返回 0, 失败时返回 1 . 当不再关心关联文件的 I/O 事件时需要调用 sp_del 解除关联. */
+/* 添加新的关联文件描述符( socket 或者 pipe 的文件描述符 )到 efd 句柄中,
+ * 对关联文件描述符的可读事件进行注册.
+ * sock 是关联文件描述符, ud 是与此关联文件描述符相关的用户数据, 此用户数据在事件发生时返回.
+ * 添加成功时返回 0, 失败时返回 1 . 当不再关心关联文件描述符的 I/O 事件时需要调用 sp_del 解除关联. */
 static int 
 sp_add(int efd, int sock, void *ud) {
 	struct epoll_event ev;
@@ -49,19 +52,19 @@ sp_add(int efd, int sock, void *ud) {
 	return 0;
 }
 
-/* 从 epoll 侦听队列中移除关联文件( socket 或者 pipe 的文件描述符 ), 
- * 移除后将不再侦听关联文件中的 I/O 事件.
- * 参数 efd 为 epoll 文件描述符, sock 为关联文件. 此函数无返回值.
- * 此函数只应对已经关联了的文件调用一次, 其它情况下调用无效. */
+/* 从 epoll 侦听队列中移除关联文件描述符( socket 或者 pipe 的文件描述符 ), 
+ * 移除后将不再侦听关联文件描述符中的 I/O 事件.
+ * 参数 efd 为 epoll 文件描述符, sock 为关联文件描述符. 此函数无返回值.
+ * 此函数只应对已经关联了的文件描述符调用一次, 其它情况下调用无效. */
 static void 
 sp_del(int efd, int sock) {
 	epoll_ctl(efd, EPOLL_CTL_DEL, sock , NULL);
 }
 
-/* 打开或关闭关联文件的可写事件侦听, 并同时修改关联文件上的用户数据.
- * 参数 efd 是 epoll 文件描述符, ud 是关联文件上的用户数据, enable 为
- * true 时表示侦听可写事件, false 表示不侦听可写事件. 此函数会保证
- * 关联文件的可读事件保持侦听. 调用此函数前需要将关联文件注册到 epoll 上, 
+/* 打开或关闭关联文件描述符的可写事件侦听, 并同时修改关联文件描述符上的用户数据.
+ * 参数 efd 是 epoll 文件描述符, sock 是关联文件描述符, ud 是关联文件描述符上的用户数据,
+ * enable 为 true 时表示侦听可写事件, false 表示不侦听可写事件. 此函数会保证
+ * 关联文件描述符的可读事件保持侦听. 调用此函数前需要将关联文件描述符注册到 epoll 上, 
  * 其它情况下调用无效. */
 static void 
 sp_write(int efd, int sock, void *ud, bool enable) {
@@ -72,7 +75,7 @@ sp_write(int efd, int sock, void *ud, bool enable) {
 }
 
 /* 以阻塞方式等待并接收 epoll 侦听列表上的 I/O 事件.
- * 调用此函数会阻塞直到任一关联文件可以进行 I/O 操作或者被中断.
+ * 调用此函数会阻塞直到任一关联文件描述符可以进行 I/O 操作或者被中断.
  * 事件将被填充在参数 e 中, 参数 efd 是 epoll 文件描述符, max 为最大获取事件数量,
  * 必须是正数, 一般为 e 数组的长度. 函数返回的发生 I/O 事件的文件数量. */
 static int 
