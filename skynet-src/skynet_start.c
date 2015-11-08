@@ -125,6 +125,7 @@ thread_timer(void *p) {
 	struct monitor * m = p;
 	skynet_initthread(THREAD_TIMER);
 	for (;;) {
+		/* 没运行四次将会更新一次时间, 因为时间单位是厘秒, 而运行间隔是 2.5 毫秒 */
 		skynet_updatetime();
 		CHECK_ABORT
 		wakeup(m,m->count-1);
