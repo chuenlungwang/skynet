@@ -3,6 +3,7 @@
 
 #ifndef USE_PTHREAD_LOCK
 
+/* 以自旋方式实现读写锁, 读锁是共享锁而写锁是排他锁, 此实现方式没有锁的次数限制, 并且写锁优先于读锁. */
 struct rwlock {
 	int write;
 	int read;
@@ -51,6 +52,7 @@ rwlock_runlock(struct rwlock *lock) {
 
 #include <pthread.h>
 
+/* pthread 实现方式是阻塞的而不是自旋的 */
 // only for some platform doesn't have __sync_*
 // todo: check the result of pthread api
 
