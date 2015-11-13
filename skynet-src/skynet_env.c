@@ -33,7 +33,7 @@ skynet_getenv(const char *key) {
 	return result;
 }
 
-/* 给 skynet 设置一个环境变量, 要求之前不存在此环境变量.
+/* 给 skynet 设置一个环境变量, 要求之前不存在此环境变量, 否则 assert 将失败, 为的是防止之后被无意中修改.
  * 参数 key 是环境变量名, value 为关联的值.
  * 此函数是线程安全的. */
 void 

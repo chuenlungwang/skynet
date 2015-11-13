@@ -14,6 +14,8 @@
 #include <signal.h>
 #include <assert.h>
 
+/* 从 skynet 中取出名为 key 的整型环境变量, 如果不存在则设置其为默认值, 并返回此默认值.
+ * 参数 opt 为默认值 */
 static int
 optint(const char *key, int opt) {
 	const char * str = skynet_getenv(key);
@@ -38,6 +40,8 @@ optboolean(const char *key, int opt) {
 }
 */
 
+/* 从 skynet 中获取名为 key 的字符串环境变量, 如果不存在则设置其位默认值, 并返回此默认值.
+ * 参数 opt 是默认值, 为 NULL 时将不设置默认值. */
 static const char *
 optstring(const char *key,const char * opt) {
 	const char * str = skynet_getenv(key);
@@ -51,6 +55,8 @@ optstring(const char *key,const char * opt) {
 	return str;
 }
 
+/* 从 Lua 虚拟机中读取配置信息, 设置为 skynet 的环境变量, 配置信息中的数字、布尔类型会转化为字符串存储,
+ * 不能包含 function 和 table 类型值. */
 static void
 _init_env(lua_State *L) {
 	lua_pushnil(L);  /* first key */
@@ -77,6 +83,8 @@ _init_env(lua_State *L) {
 	lua_pop(L,1);
 }
 
+/* 忽略 SIG_IGN 信号, 当客户端异常断开连接时如果服务器依然写数据,
+ * 将会收到 SIG_IGN 并且在默认情况下导致服务器终止. */
 int sigign() {
 	struct sigaction sa;
 	sa.sa_handler = SIG_IGN;
@@ -84,6 +92,9 @@ int sigign() {
 	return 0;
 }
 
+/* 读取配置的 Lua 脚本字符串, 配置文件路径为其唯一参数, 其中配置文件也是一段 Lua 脚本.
+ * 此段代码首先读取配置文件, 并将 $identity 形式的字符串替换成环境变量,
+ * 随后执行配置文件, 并且收集其中的全局变量到结果集中然后返回. */
 static const char * load_config = "\
 	local config_name = ...\
 	local f = assert(io.open(config_name))\
@@ -107,12 +118,15 @@ main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	/* 执行系统全局信息的初始化 */
 	luaS_initshr();
 	skynet_globalinit();
 	skynet_env_init();
 
+	/* 忽略客户端异常断开的信号, 否则会导致服务器终止 */
 	sigign();
 
+	/* 读取配置 */
 	struct skynet_config config;
 
 	struct lua_State *L = lua_newstate(skynet_lalloc, NULL);
@@ -140,7 +154,10 @@ main(int argc, char *argv[]) {
 
 	lua_close(L);
 
+	/* 启动系统的监视线程、定时器线程、网络线程、工作线程, 并等待它们工作结束 */
 	skynet_start(&config);
+	
+	/* 执行系统反初始化 */
 	skynet_globalexit();
 	luaS_exitshr();
 

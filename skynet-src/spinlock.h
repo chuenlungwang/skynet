@@ -22,6 +22,7 @@ spinlock_lock(struct spinlock *lock) {
 	while (__sync_lock_test_and_set(&lock->lock,1)) {}
 }
 
+/* 尝试加锁, 返回是否加锁成功, 1 表示加锁成功, 0 表示加锁不成功. */
 static inline int
 spinlock_trylock(struct spinlock *lock) {
 	return __sync_lock_test_and_set(&lock->lock,1) == 0;

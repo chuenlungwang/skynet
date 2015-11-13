@@ -6,6 +6,7 @@
 #include <time.h>
 
 /* 在 logpath 下以追加的方式打开一个名为 [handle].log 的日志文件, 并打印当前时间.
+ * 如果没有配置 logpath 将直接返回 NULL.
  * 打开成功时返回文件流对象指针, 失败时返回 NULL. 参数 ctx 为调用此函数的服务,
  * handle 为接收命令的服务的地址. */
 FILE * 
