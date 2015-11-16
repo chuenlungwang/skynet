@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-/* 消息结构 */
+/* 消息结构, 消息中没有目的地服务的信息 */
 struct skynet_message {
 	uint32_t source;     /* 发送消息的服务 id */
 	int session;         /* 会话号, 发送请求消息时会分配一个唯一会话号, 发送回复消息时必须与

@@ -5,7 +5,7 @@
 #include <string.h>
 #include <time.h>
 
-/* 在 logpath 下以追加的方式打开一个名为 [handle].log 的日志文件, 并打印当前时间.
+/* 在 logpath 下以二进制追加的方式打开一个名为 [handle].log 的日志文件, 并打印当前时间.
  * 如果没有配置 logpath 将直接返回 NULL.
  * 打开成功时返回文件流对象指针, 失败时返回 NULL. 参数 ctx 为调用此函数的服务,
  * handle 为接收命令的服务的地址. */
@@ -76,7 +76,7 @@ log_socket(FILE * f, struct skynet_socket_message * message, size_t sz) {
 	fflush(f);
 }
 
-/* 将 skynet 消息输出到日志中. 函数会记录消息本身的元信息以及消息的内容.
+/* 将 skynet 消息输出到日志中. 函数会记录消息本身的元信息以及消息的内容, 记录会被分成网络消息和其它消息分别记录.
  * 参数 f 为输出日志文件, source 为消息来源, type 为消息类型, session 为消息的会话编号,
  * buffer 为消息内容, sz 为消息大小. */
 void 

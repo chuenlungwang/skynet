@@ -277,7 +277,7 @@ skynet_mq_release(struct message_queue *q, message_drop drop_func, void *ud) {
 	
 	if (q->release) {
 		/* 先解锁的原因是 _drop_queue 调用的 skynet_mq_pop 会再次加锁 q
-		   若不限解锁将会产生死锁. 当前的自旋锁不是可重入的 */
+		   若不先解锁将会产生死锁. 当前的自旋锁不是可重入的 */
 		SPIN_UNLOCK(q)
 		_drop_queue(q, drop_func, ud);
 	} else {
