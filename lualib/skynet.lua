@@ -299,16 +299,19 @@ function skynet.localname(name)
 	end
 end
 
-function skynet.now()
-	return c.intcommand("NOW")
-end
+skynet.now = c.now
+
+local starttime
 
 function skynet.starttime()
-	return c.intcommand("STARTTIME")
+	if not starttime then
+		starttime = c.intcommand("STARTTIME")
+	end
+	return starttime
 end
 
 function skynet.time()
-	return skynet.now()/100 + skynet.starttime()	-- get now first would be better
+	return skynet.now()/100 + starttime or skynet.starttime()
 end
 
 function skynet.exit()
@@ -446,12 +449,10 @@ function skynet.dispatch_unknown_response(unknown)
 	return prev
 end
 
-local tunpack = table.unpack
-
 function skynet.fork(func,...)
-	local args = { ... }
+	local args = table.pack(...)
 	local co = co_create(function()
-		func(tunpack(args))
+		func(table.unpack(args,1,args.n))
 	end)
 	table.insert(fork_queue, co)
 	return co

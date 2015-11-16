@@ -532,16 +532,6 @@ cmd_name(struct skynet_context * context, const char * param) {
 	return NULL;
 }
 
-/* 获取当前时间, 单位为厘秒. 此时间在 skynet 运行大约 497 天后回绕. 与 cmd_starttime 一同构成了墙上时钟.
- * 参数: context 是发起命令的服务, param 参数并没有使用.
- * 返回: 当前厘秒数的数字字符串 */
-static const char *
-cmd_now(struct skynet_context * context, const char * param) {
-	uint32_t ti = skynet_gettime();
-	sprintf(context->result,"%u",ti);
-	return context->result;
-}
-
 /* 退出 context 服务.
  * 参数: context 是发起命令的服务也是待退出的服务, param 未使用.
  * 返回: NULL 表示无返回值 */
@@ -640,14 +630,13 @@ cmd_setenv(struct skynet_context * context, const char * param) {
 }
 
 /* 获取 skynet 的启动时间. 时间计算为从 1970 年 1 月 1 日 00:00 经过的秒数.
- * 此函数返回的有可能是实际启动时间的 497 天后, 具体查看 skynet_gettime_fixsec 函数.
- * 此函数与 cmd_now 一同构成了墙上时钟.
+ * 此函数与 skynet_now 一同构成了墙上时钟.
  *
  * 参数: context 是发起命令的服务, param 未使用
  * 返回: 启动时间 */
 static const char *
 cmd_starttime(struct skynet_context * context, const char * param) {
-	uint32_t sec = skynet_gettime_fixsec();
+	uint32_t sec = skynet_starttime();
 	sprintf(context->result,"%u",sec);
 	return context->result;
 }
@@ -794,7 +783,6 @@ static struct command_func cmd_funcs[] = {
 	{ "REG", cmd_reg },
 	{ "QUERY", cmd_query },
 	{ "NAME", cmd_name },
-	{ "NOW", cmd_now },
 	{ "EXIT", cmd_exit },
 	{ "KILL", cmd_kill },
 	{ "LAUNCH", cmd_launch },

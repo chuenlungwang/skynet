@@ -58,11 +58,9 @@ struct timer {
 	uint32_t time;             /* 当前时间, 单位厘秒, 是触发定时事件的依据, 与 current 的区别在于 time 的初始值是 0,
 	                              而 current 的初始值与墙上时钟有关, time 每次只增加 1 厘秒, 并且伴随着定时事件触发,
 	                              具体参见 timer_shift 函数 */
-	uint32_t current;          /* 当前时间, 单位厘秒, 与 starttime 一起构成了墙上时钟, 可能会回绕,
-	                              具体见 skynet_updatetime 函数 */
-	uint32_t starttime;        /* 系统启动时间点, 单位秒, 可能会相差 497 天, 具体见 skynet_updatetime 函数 */
+	uint32_t starttime;        /* 系统启动时间点, 单位秒 */
+	uint32_t current;          /* 当前时间, 单位厘秒, 与 starttime 一起构成了墙上时钟 */
 	uint64_t current_point;    /* 当前时间的精确时间戳, 单位厘秒, 不会回绕, 用于计算系统运行时间 */
-	uint64_t origin_point;     /* 系统启动时的精确时间戳, 单位厘秒 */
 };
 
 static struct timer * TI = NULL;
@@ -367,14 +365,7 @@ skynet_updatetime(void) {
 	} else if (cp != TI->current_point) {
 		uint32_t diff = (uint32_t)(cp - TI->current_point);
 		TI->current_point = cp;
-
-		/* 新的当前厘秒数小于旧的当前厘秒数, 表示时间已经回绕了, 此时应该更新至 starttime 中. */
-		uint32_t oc = TI->current;
 		TI->current += diff;
-		if (TI->current < oc) {
-			// when cs > 0xffffffff(about 497 days), time rewind
-			TI->starttime += 0xffffffff / 100;
-		}
 		int i;
 		for (i=0;i<diff;i++) {
 			timer_update(TI);
@@ -382,18 +373,15 @@ skynet_updatetime(void) {
 	}
 }
 
-/* 获取启动时间, 时间计算为从 1970 年 1 月 1 日 00:00 经过的秒数.
- * 此函数返回的有可能是实际启动时间的 497 天后, 原因在于定时器内部使用了 32 位整型
- * 表示系统运行的厘秒数, 这个数值会在大约 497 天后回绕, 因而会将时间变化更新至启动时间字段. */
+/* 获取启动时间, 时间计算为从 1970 年 1 月 1 日 00:00 经过的秒数. */
 uint32_t
-skynet_gettime_fixsec(void) {
+skynet_starttime(void) {
 	return TI->starttime;
 }
 
-/* 获取当前时间, 单位是厘秒, 与 skynet_gettime_fixsec 之和构成墙上时钟.
- * 此厘秒值在系统运行大约 497 天后会由于溢出而回绕. */
-uint32_t 
-skynet_gettime(void) {
+/* 获取当前时间, 单位是厘秒, 与 skynet_gettime_fixsec 之和构成墙上时钟. */
+uint64_t 
+skynet_now(void) {
 	return TI->current;
 }
 
@@ -402,9 +390,9 @@ skynet_gettime(void) {
 void 
 skynet_timer_init(void) {
 	TI = timer_create_timer();
-	systime(&TI->starttime, &TI->current);
-	uint64_t point = gettime();
-	TI->current_point = point;
-	TI->origin_point = point;
+	uint32_t current = 0;
+	systime(&TI->starttime, &current);
+	TI->current = current;
+	TI->current_point = gettime();
 }
 
