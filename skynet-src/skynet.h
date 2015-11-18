@@ -26,6 +26,8 @@
 
 struct skynet_context;
 
+/* 本文件指示所有散布于 skynet-src 中的 skynet 开头的函数 */
+
 void skynet_error(struct skynet_context * context, const char *msg, ...);
 const char * skynet_command(struct skynet_context * context, const char * cmd , const char * parm);
 uint32_t skynet_queryname(struct skynet_context * context, const char * name);
