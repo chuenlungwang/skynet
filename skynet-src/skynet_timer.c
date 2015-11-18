@@ -331,17 +331,8 @@ static uint64_t
 gettime() {
 	uint64_t t;
 #if !defined(__APPLE__)
-
-/* 在 Linux 2.6.28 定义了不受 NTP 影响的单调递增时间戳 CLOCK_MONOTONIC_RAW,
-   BSD 中只定义了 CLOCK_MONOTONIC */
-#ifdef CLOCK_MONOTONIC_RAW
-#define CLOCK_TIMER CLOCK_MONOTONIC_RAW
-#else
-#define CLOCK_TIMER CLOCK_MONOTONIC
-#endif
-
 	struct timespec ti;
-	clock_gettime(CLOCK_TIMER, &ti);
+	clock_gettime(CLOCK_MONOTONIC, &ti);
 	t = (uint64_t)ti.tv_sec * 100;
 	t += ti.tv_nsec / 10000000;
 #else
