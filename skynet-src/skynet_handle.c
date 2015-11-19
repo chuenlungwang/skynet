@@ -295,7 +295,7 @@ skynet_handle_namehandle(uint32_t handle, const char *name) {
 /* 对服务句柄模块进行初始化, 分配服务插槽和名字数组, 初始化读写锁以及将 harbor 值移动到最高 8 位.
  * 给句柄存储器分配的内存最终不会被回收, 而是随着进程结束而回收.
  *
- * 参数: harbor 为当前节点的 id
+ * 参数: harbor 为当前节点的 id, 要求值的范围在 255 以内
  * 此函数无返回值. */
 void 
 skynet_handle_init(int harbor) {

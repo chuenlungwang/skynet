@@ -975,8 +975,8 @@ skynet_callback(struct skynet_context * context, void *ud, skynet_cb cb) {
 	context->cb_ud = ud;
 }
 
-/* 向指定的服务发送消息. 参数 ctx 为接收消息的服务器对象指针, msg 为消息内容, sz 为消息内容大小， source 为发送服务的地址
- * type 为消息的类型, session 是消息的会话 */
+/* 向指定的服务发送消息. 参数 ctx 为接收消息的服务器对象指针, msg 为消息内容, 必须是堆内存,
+ * sz 为消息内容大小， source 为发送服务的地址, type 为消息的类型, session 是消息的会话 */
 void
 skynet_context_send(struct skynet_context * ctx, void * msg, size_t sz, uint32_t source, int type, int session) {
 	struct skynet_message smsg;
