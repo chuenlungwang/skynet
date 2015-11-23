@@ -154,6 +154,9 @@ skynet_module_instance_release(struct skynet_module *m, void *inst) {
 	}
 }
 
+/* 向服务实例 inst 发送信号.
+ * 参数: m 是服务实例所属的服务模块, inst 是服务实例, signal 是信号.
+ * 此函数没有返回值. */
 void
 skynet_module_instance_signal(struct skynet_module *m, void *inst, int signal) {
 	if (m->signal) {
@@ -161,6 +164,9 @@ skynet_module_instance_signal(struct skynet_module *m, void *inst, int signal) {
 	}
 }
 
+/* 对服务模块管理器进行初始化.
+ * 参数: path 是服务模块所在的路径
+ * 此函数无返回值. */
 void 
 skynet_module_init(const char *path) {
 	struct modules *m = skynet_malloc(sizeof(*m));
