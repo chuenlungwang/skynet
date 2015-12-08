@@ -8,14 +8,17 @@
 #include "skynet.h"
 #include "atomic.h"
 
-static size_t _used_memory = 0;
-static size_t _memory_block = 0;
+static size_t _used_memory = 0;     /* 记录分配的内存大小 */
+static size_t _memory_block = 0;    /* 记录分配的内存块数 */
+
+/* 记录每个服务占用内存的结构 */
 typedef struct _mem_data {
-	uint32_t handle;
-	ssize_t allocated;
+	uint32_t handle;        /* 服务地址 */
+	ssize_t allocated;      /* 占用的内存大小 */
 } mem_data;
 
 #define SLOT_SIZE 0x10000
+/* PREFIX_SIZE 是使用 jemalloc 内存分配器时跟踪内存分配时放在堆内存的末端的服务地址的大小 */
 #define PREFIX_SIZE sizeof(uint32_t)
 
 static mem_data mem_stats[SLOT_SIZE];
