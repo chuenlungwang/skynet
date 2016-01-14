@@ -73,6 +73,8 @@ thread_socket(void *p) {
 			break;
 		if (r<0) {
 			CHECK_ABORT
+			/* [ck]为何此处需要 continue, 从而跳过 wakeup?
+			 * 当有大量连接时, 如果去唤醒工作线程, 将导致性能下降[/ck] */
 			continue;
 		}
 		wakeup(m,0);
@@ -125,7 +127,7 @@ thread_timer(void *p) {
 	struct monitor * m = p;
 	skynet_initthread(THREAD_TIMER);
 	for (;;) {
-		/* 没运行四次将会更新一次时间, 因为时间单位是厘秒, 而运行间隔是 2.5 毫秒 */
+		/* 每运行四次将会更新一次时间, 因为时间单位是厘秒, 而运行间隔是 2.5 毫秒 */
 		skynet_updatetime();
 		CHECK_ABORT
 		wakeup(m,m->count-1);

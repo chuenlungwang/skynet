@@ -3,6 +3,7 @@
 
 struct skynet_context;
 
+/* struct skynet_socket_message 中的 type 取值, 标识所有的套接字事件 */
 #define SKYNET_SOCKET_TYPE_DATA 1
 #define SKYNET_SOCKET_TYPE_CONNECT 2
 #define SKYNET_SOCKET_TYPE_CLOSE 3
@@ -11,11 +12,13 @@ struct skynet_context;
 #define SKYNET_SOCKET_TYPE_UDP 6
 #define SKYNET_SOCKET_TYPE_WARNING 7
 
+/* 发送到 skynet 各个服务去的套接字消息 */
 struct skynet_socket_message {
-	int type;
-	int id;
-	int ud;
-	char * buffer;
+	int type;           /* 消息类型, 取值在上边描述 */
+	int id;             /* 套接字连接的 id */
+	int ud;             /* 当 ACCEPT 时 ud 表示在侦听端口上连接上来的套接字连接的 id, 当为 DATA 时表示
+	                       接收到的数据大小, 其它情况下均为 0 */
+	char * buffer;      /* 当为 DATA 时表示数据内容, 其它情况下或者为 NULL 或者为错误信息等 */
 };
 
 void skynet_socket_init();

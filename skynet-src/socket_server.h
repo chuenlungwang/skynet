@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+/* socket 的事件类型, 作为 socket_server_poll 函数的返回值 */
 #define SOCKET_DATA 0
 #define SOCKET_CLOSE 1
 #define SOCKET_OPEN 2
@@ -13,11 +14,12 @@
 
 struct socket_server;
 
+/* socket 信息, 用于作为各种 socket 事件的返回值 */
 struct socket_message {
-	int id;
-	uintptr_t opaque;
-	int ud;	// for accept, ud is new connection id ; for data, ud is size of data 
-	char * data;
+	int id;               /* socket 对象的 id */
+	uintptr_t opaque;     /* 不透明对象, 通常为一个 skynet 服务地址 */
+	int ud;	              // for accept, ud is new connection id ; for data, ud is size of data 
+	char * data;          /* 当存在数据时, data 里边包含数据内容 */
 };
 
 struct socket_server * socket_server_create();
@@ -54,10 +56,11 @@ int64_t socket_server_udp_send(struct socket_server *, int id, const struct sock
 // extract the address of the message, struct socket_message * should be SOCKET_UDP
 const struct socket_udp_address * socket_server_udp_address(struct socket_server *, struct socket_message *, int *addrsz);
 
+/* 自定义的获取 socket 发送数据的接口, 它们的参数均为待发送的 buffer 对象 */
 struct socket_object_interface {
-	void * (*buffer)(void *);
-	int (*size)(void *);
-	void (*free)(void *);
+	void * (*buffer)(void *);    /* 从 buffer 中取得发送数据, 并不会再另外分配内存 */
+	int (*size)(void *);         /* 从 buffer 中取得发送数据的大小 */
+	void (*free)(void *);        /* 销毁 buffer 对象 */
 };
 
 // if you send package sz == -1, use soi.
