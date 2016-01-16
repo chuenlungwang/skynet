@@ -321,6 +321,7 @@ dump_mem_lua(lua_State *L) {
 	return 1;
 }
 
+/* 获取到当前线程的服务所分配的内存的大小. 单位是字节, 当无法获取时将返回 0 . */
 size_t
 malloc_current_memory(void) {
 	uint32_t handle = skynet_current_handle();
@@ -334,6 +335,7 @@ malloc_current_memory(void) {
 	return 0;
 }
 
+/* 在标准误中显示一条调试信息, 此调试信息中将包括当前线程所在服务分配的内存. info 为调试信息. */
 void
 skynet_debug_memory(const char *info) {
 	// for debug use
