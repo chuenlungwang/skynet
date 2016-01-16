@@ -840,6 +840,7 @@ _filter_args(struct skynet_context * context, int type, int *session, void ** da
 	}
 
 	if (needcopy && *data) {
+		/* 添加多一个 \0 的原因在于字符串形式的data 的 sz 可能是不包含 \0 在内的 */
 		char * msg = skynet_malloc(*sz+1);
 		memcpy(msg, *data, *sz);
 		msg[*sz] = '\0';

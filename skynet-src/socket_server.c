@@ -1467,6 +1467,7 @@ socket_server_poll(struct socket_server *ss, struct socket_message * result, int
 		}
 		if (ss->event_index == ss->event_n) {
 			ss->event_n = sp_wait(ss->event_fd, ss->ev, MAX_EVENT);
+			/* 当 sp_wait 返回时, 有可能其中包含了管道命令接收端的读事件, 因而需要标记检查命令 */
 			ss->checkctrl = 1;
 			if (more) {
 				*more = 0;
@@ -1611,7 +1612,7 @@ free_buffer(struct socket_server *ss, const void * buffer, int sz) {
  * 发送的过程是异步的, 函数先将内容写入到管道中, 并由专门的处理线程完成发送操作, 或者写入到低权限的写缓冲队列中去.
  *
  * 参数: ss 是套接字服务器; id 是发送数据的套接字标识; buffer 是发送的数据内容; sz 是发送的大小;
- * 返回: 套接字中的缓冲数据大小, 如果失败将返回 -1 . */
+ * 返回: 套接字中的写缓冲数据大小, 如果失败将返回 -1 . */
 int64_t 
 socket_server_send(struct socket_server *ss, int id, const void * buffer, int sz) {
 	struct socket * s = &ss->slot[HASH_ID(id)];
@@ -1791,7 +1792,7 @@ socket_server_listen(struct socket_server *ss, uintptr_t opaque, const char * ad
 
 /* 将一个操作系统套接字的文件描述符 fd 添加到 skynet 中, 并生成一个对应的套接字.
  * 参数: ss 是套接字服务器; opaque 是服务句柄; fd 是操作系统中的套接字文件描述符;
- * 返回: 生成的套接字 id */
+ * 返回: 生成的套接字 id, 失败时返回 -1 . */
 int
 socket_server_bind(struct socket_server *ss, uintptr_t opaque, int fd) {
 	struct request_package request;
