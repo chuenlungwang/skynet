@@ -154,8 +154,7 @@ skynet_socket_send(struct skynet_context *ctx, int id, void *buffer, int sz) {
 	return check_wsz(ctx, id, buffer, wsz);
 }
 
-/* 服务 ctx 向套接字 id 发送数据 buffer , 发送数据的大小为 sz. 此函数可以针对 TCP 和 UDP 两种套接字.
- * 返回: 检查写缓冲大小的结果, 0 表示成功, -1 表示失败. */
+/* 服务 ctx 向套接字 id 发送地权限数据 buffer , 发送数据的大小为 sz. 此函数可以针对 TCP 和 UDP 两种套接字. */
 void
 skynet_socket_send_lowpriority(struct skynet_context *ctx, int id, void *buffer, int sz) {
 	socket_server_send_lowpriority(SOCKET_SERVER, id, buffer, sz);
@@ -212,7 +211,7 @@ skynet_socket_shutdown(struct skynet_context *ctx, int id) {
 }
 
 /* 可对类型为 SOCKET_TYPE_PACCEPT, SOCKET_TYPE_PLISTEN 和 SOCKET_TYPE_CONNECTED 的套接字发起启动命令.
- * 首先叫导致前两种套接字开始接收 I/O 事件通知, 其次将导致三种套接字的所属服务变为服务 ctx . 最终将以异步方式通知
+ * 首先将导致前两种套接字开始接收 I/O 事件通知, 其次将导致第三种套接字的所属服务变为服务 ctx . 最终将以异步方式通知
  * 服务成功或失败.
  *
  * 函数无返回值 */
