@@ -259,7 +259,7 @@ lheader(lua_State *L) {
  */
 /* [lua_api] 从缓存列表中读取指定长度的字符串, 并返回剩余的缓存列表消息的总大小和读取的字符串数据.
  * 参数: userdata [1] 为缓存列表; table [2] 为缓存节点池; int [3] 是读取的大小
- * 返回: string [1] 为读取的指定长度的字符串; int [2] 为剩余的缓存消息的总大小; */
+ * 返回: string/nil [1] 为读取的指定长度的字符串, 如果读取的长度大于缓存列表的大小, 为 nil ; int [2] 为剩余的缓存消息的总大小; */
 static int
 lpopbuffer(lua_State *L) {
 	struct socket_buffer * sb = lua_touserdata(L, 1);
@@ -350,7 +350,8 @@ check_sep(struct buffer_node * node, int from, const char *sep, int seplen) {
 				return false;
 			}
 		}
-		/* [ck]有没有可能其下一个节点是 NULL [/ck] */
+		/* [ck]有没有可能其下一个节点是 NULL? 不会,
+		 * 因为 i 的最大值是 sb->size - seplen , 保证缓存列表中有足够多的字符用于比较. [/ck] */
 		node = node->next;
 		sep += sz;
 		seplen -= sz;
@@ -553,8 +554,8 @@ lshutdown(lua_State *L) {
 	return 0;
 }
 
-/* [lua_api] 侦听一个 ip 地址, 其中主机地址可为 nil 或者空字符串, 此时将侦听 0.0.0.0 . 默认的未完成连接的请求的队列大小为 BACKLOG .
- * 参数: string [1] 是主机名, 可以为 nil; int [2] 为侦听的端口号; int [3] 为未完成连接的请求的队列大小, 可以为 nil;
+/* [lua_api] 侦听一个 ip 地址, 其中主机地址可为空字符串, 此时将侦听 0.0.0.0 . 默认的未完成连接的请求的队列大小为 BACKLOG .
+ * 参数: string [1] 是主机名, 可以为空字符串; int [2] 为侦听的端口号; int [3] 为未完成连接的请求的队列大小, 可以为 nil;
  * 返回: 成功时返回套接字 id, 失败时将抛出错误; */
 static int
 llisten(lua_State *L) {
@@ -562,7 +563,7 @@ llisten(lua_State *L) {
 	int port = luaL_checkinteger(L,2);
 	int backlog = luaL_optinteger(L,3,BACKLOG);
 	struct skynet_context * ctx = lua_touserdata(L, lua_upvalueindex(1));
-	int id = skynet_socket_listen(ctx, host,port,backlog);
+	int id = skynet_socket_listen(ctx,host,port,backlog);
 	if (id < 0) {
 		return luaL_error(L, "Listen error");
 	}
