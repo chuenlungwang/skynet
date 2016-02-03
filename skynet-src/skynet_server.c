@@ -178,8 +178,6 @@ skynet_context_new(const char * name, const char *param) {
 		if (ret) {
 			ctx->init = true;
 		}
-		/* 无论如何都要将消息队列放入全局队列中去, 如果服务未能正确启动,
-		 * 此消息队列会在分发消息时销毁. */
 		skynet_globalmq_push(queue);
 		if (ret) {
 			skynet_error(ret, "LAUNCH %s %s", name, param ? param : "");

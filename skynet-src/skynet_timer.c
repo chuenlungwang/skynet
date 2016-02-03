@@ -307,7 +307,7 @@ skynet_timeout(uint32_t handle, int time, int session) {
 // centisecond: 1/100 second
 static void
 systime(uint32_t *sec, uint32_t *cs) {
-/* 在 Darwin 中没有定义 clock_gettime 函数而只定义了 gettimeofday 函数,
+/* 在 OSX 中没有定义 clock_gettime 函数而只定义了 gettimeofday 函数,
    并且 struct timespec 包含秒和纳秒, 而 struct timeval 包含秒和微秒. */
 #if !defined(__APPLE__)
 	struct timespec ti;
@@ -322,8 +322,8 @@ systime(uint32_t *sec, uint32_t *cs) {
 #endif
 }
 
-/* 获取自某个确定时间点的时间戳, 单位是厘秒. 在非 Darwin 的环境下获取的是自操作系统启动后的厘秒数,
- * 此时时间是不受用户设置墙上时钟影响的. 由于 Darwin 中没有类似函数, 获取的是
+/* 获取自某个确定时间点的时间戳, 单位是厘秒. 在非 OSX 的环境下获取的是自操作系统启动后的厘秒数,
+ * 此时时间是不受用户设置墙上时钟影响的. 由于 OSX 中没有类似函数, 获取的是
  * 自 1970 年 1 月 1 日 00:00 经过的厘秒数, 这个时间是会受到用户设置的影响的.
  * 返回值是距离某个确定时间点的厘秒数.
  * 此函数的用途在于通过比较两个时间戳的差值获取一个精确的时间流逝. */
@@ -370,7 +370,7 @@ skynet_starttime(void) {
 	return TI->starttime;
 }
 
-/* 获取当前时间, 单位是厘秒, 与 skynet_gettime_fixsec 之和构成墙上时钟. */
+/* 获取当前时间, 单位是厘秒, 与 skynet_starttime 之和构成墙上时钟. */
 uint64_t 
 skynet_now(void) {
 	return TI->current;
