@@ -34,6 +34,8 @@ Success:
 ]]
 
 local socket_error = {}
+--[[ 判断 v 是否不为 false, v 是套接字写入或读取数据的返回值, false 表示套接字已经关闭.
+如果 v 为 false 将抛出错误. ]]
 local function assert_socket(service, v, fd)
 	if v then
 		return v
@@ -43,6 +45,7 @@ local function assert_socket(service, v, fd)
 	end
 end
 
+--[[ 向套接字中写入数据, 并在套接字关闭时抛出错误. ]]
 local function write(service, fd, text)
 	assert_socket(service, socket.write(fd, text), fd)
 end
@@ -115,6 +118,9 @@ end
 
 local user_login = {}
 
+--[[ 具体的登陆流程在此完成, 首先将调用 slave 服务完成认证工作, 并得到相应的登陆点、用户 id 和密钥.
+然后执行真正的登陆工作, 比如将用户添加到登陆表中、让登陆点准备好 agent 服务等等. 最后通知用户登陆成功.
+当任何时候无法登陆成功时抛出错误, 结束登陆流程. ]]
 local function accept(conf, s, fd, addr)
 	-- call slave auth
 	local ok, server, uid, secret = skynet.call(s, "lua",  fd, addr)
@@ -149,6 +155,8 @@ local function accept(conf, s, fd, addr)
 	end
 end
 
+--[[ 按照配置启动 master 服务, 首先会注册命令处理的函数, 然后启动多个 slave 服务. 最后侦听端口,
+接收客户端的连接并注册回调函数引导用户进行登陆流程. ]]
 local function launch_master(conf)
 	local instance = conf.instance or 8
 	assert(instance > 0)
@@ -183,6 +191,10 @@ local function launch_master(conf)
 	end)
 end
 
+--[[ 启动登陆服务, 最开始调用将启动 master 服务, 随后由 master 服务启动若干个 slave 服务,
+每次传递给 login 函数的配置都是独立的, 因而可以对其进行写操作而不会影响其他服务. 其中 master 服务
+主要工作在于接收客户端连接, 同时接收其它服务的命令, 而将具体的认证工作交给 slave 去处理, master
+服务会在认证通过之后进行真正的登陆工作. ]]
 local function login(conf)
 	local name = "." .. (conf.name or "login")
 	skynet.start(function()
