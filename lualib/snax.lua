@@ -15,7 +15,8 @@ skynet.register_protocol {
 	unpack = skynet.unpack,
 }
 
-
+--[[ 从 snax 路径通赔符的目录中加载名字为 name 的 Lua 文件, 并将注册函数置入表中返回. 已经加载过的文件,
+则其注册函数将会缓存. ]]
 function snax.interface(name)
 	if typeclass[name] then
 		return typeclass[name]
@@ -44,6 +45,9 @@ local meta = { __tostring = function(v) return string.format("[%s:%x]", v.type, 
 local skynet_send = skynet.send
 local skynet_call = skynet.call
 
+--[[ 生成一个表, 这个表的 __index 元函数, 此函数将会返回 snax.interface 中 accept 下的函数. 调用返回的函数将会远程调用服务中的相应函数.
+参数: table type 是调用 snax.interface(name) 返回的表; int handle 是以这个名字启动的服务;
+返回: 一个函数, 调用函数将相对应的远程调用服务 handle 中的函数. ]]
 local function gen_post(type, handle)
 	return setmetatable({} , {
 		__index = function( t, k )
@@ -57,6 +61,9 @@ local function gen_post(type, handle)
 		end })
 end
 
+--[[ 生成一个表, 这个表的 __index 元函数, 此函数将会返回 snax.interface 中 response 下的函数. 调用返回的函数将会远程调用服务中的相应函数.
+参数: table type 是调用 snax.interface(name) 返回的表; int handle 是以这个名字启动的服务;
+返回: 一个函数, 调用函数将相对应的远程调用服务 handle 中的函数. ]]
 local function gen_req(type, handle)
 	return setmetatable({} , {
 		__index = function( t, k )
@@ -70,6 +77,10 @@ local function gen_req(type, handle)
 		end })
 end
 
+--[[ 返回一个表, 这个表包含了 post 和 req 字表, 其中分别包含了服务 handle 中的 accept 和 response 全局表中的方法.
+调用其中的函数将会远程调用服务中的相应函数.
+
+参数: int handle 是服务句柄; string name 是 snax 服务的名字; table type 是调用 snax.interface(name) 返回的表; ]]
 local function wrapper(handle, name, type)
 	return setmetatable ({
 		post = gen_post(type, handle),
@@ -81,6 +92,7 @@ end
 
 local handle_cache = setmetatable( {} , { __mode = "kv" } )
 
+--[[ 生成名字为 name 的 snax 服务, 并返回其句柄 handle. 如果服务有 init 方法, 将会调用它. ]]
 function snax.rawnewservice(name, ...)
 	local t = snax.interface(name)
 	local handle = skynet.newservice("snaxd", name)
@@ -91,6 +103,8 @@ function snax.rawnewservice(name, ...)
 	return handle
 end
 
+--[[ snax 服务的句柄是 handle 而其文件名是 type, 调用此函数将返回其接口表,
+其中的 post 和 req 分别对应服务的 accept 和 response 表中的函数. 这些接口会缓存在表中. ]]
 function snax.bind(handle, type)
 	local ret = handle_cache[handle]
 	if ret then
@@ -103,6 +117,7 @@ function snax.bind(handle, type)
 	return ret
 end
 
+--[[ 启动一个名字为 name 的 snax 服务, 并返回其接口. ]]
 function snax.newservice(name, ...)
 	local handle = snax.rawnewservice(name, ...)
 	return snax.bind(handle, name)

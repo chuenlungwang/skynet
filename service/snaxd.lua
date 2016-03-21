@@ -6,6 +6,8 @@ local snax = require "snax"
 
 local snax_name = tostring(...)
 local func, pattern = snax_interface(snax_name, _ENV)
+
+-- 名字为 snax_name 的子目录也被包含到查找目录中去, snax_path = ./service/snax_name/
 local snax_path = pattern:sub(1,pattern:find("?", 1, true)-1) .. snax_name ..  "/"
 package.path = snax_path .. "?.lua;" .. package.path
 
@@ -30,6 +32,8 @@ local function return_f(f, ...)
 	return skynet.ret(skynet.pack(f(...)))
 end
 
+--[[ 分别调用 accept 和 response 表中的函数, 并记录调用次数和运行时间统计. 发生错误将抛出错误.
+其中 accept 中的函数是没有返回值的, 因而需要用 send 调用, 而 response 应当使用 call 调用. ]]
 local function timing( method, ... )
 	local err, msg
 	profile.start()
@@ -59,6 +63,7 @@ skynet.start(function()
 				local initfunc = method[4] or function() end
 				initfunc(...)
 				skynet.ret()
+				--[[ 将返回运行时间统计表的函数注册为 debug 模块的 INFO 函数 ]]
 				skynet.info_func(function()
 					return profile_table
 				end)
