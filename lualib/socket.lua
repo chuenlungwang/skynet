@@ -489,8 +489,6 @@ end
 
 ---------------------- UDP
 
-local udp_socket = {}
-
 --[[ 生成一个 UDP 套接字信息表, 默认是连接成功的, 提供的回调函数 cb 将在接收到 UDP 包时调用. ]]
 local function create_udp_object(id, cb)
 	assert(not socket_pool[id], "socket is not closed")
