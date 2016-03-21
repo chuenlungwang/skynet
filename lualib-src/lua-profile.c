@@ -97,7 +97,7 @@ lstart(lua_State *L) {
  * 函数结束的是当前线程的运行时间统计, 可以在 skynet 主线程和子线程中调用.
  *
  * 参数: thread[1] 是需要结束统计运行时的 Lua 线程, 若提供应当为服务的主线程, 如果未提供则以当前 Lua 线程作为统计线程;
- * 函数无返回值 */
+ * 返回: 运行的总时间 */
 static int
 lstop(lua_State *L) {
 	if (lua_type(L,1) == LUA_TTHREAD) {
