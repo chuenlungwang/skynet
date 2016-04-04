@@ -31,7 +31,7 @@ local function collect_uv(f , uv, env)
 		else
 			uv[name] = { func = f, index = i, id = id }
 
-			-- 如果上值是一个函数, 也收集此函数的所有上值
+			-- 如果上值是一个函数, 并且其环境变量 _ENV 没有另外指定, 也收集此函数的所有上值
 			if type(value) == "function" then
 				if envid(value) == env then
 					collect_uv(value, uv, env)

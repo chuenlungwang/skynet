@@ -424,7 +424,7 @@ local socket_lwrite = socket.lwrite
 --[[ 发起一个请求, 如果 response 参数不为 nil , 将等待对端返回数据. 否则将仅仅发送数据. 如果有 padding 参数,
 则依次将调用套接字的低优先级发送函数, 发送所有数据.
 
-参数: request 请求体字符串; response 不会 nil 时表示响应函数或者 session id; padding 为后续发送内容, 是一个 table;
+参数: request 请求体字符串; response 不为 nil 时表示响应函数或者 session id; padding 为后续发送内容, 是一个 table;
 返回: 对端响应的数据, 类型是一个 string 或者 table; ]]
 function channel:request(request, response, padding)
 	assert(block_connect(self, true))	-- connect once
