@@ -19,6 +19,9 @@
 #define TEMP_LENGTH 0x8200
 #define MULTI_PART 0x8000
 
+/* 以小端形式向缓冲中填充一个无符号整形值.
+ * 参数: buf 是待填充的缓冲, 缓冲的大小必须大于等于 4; n 是需要填充的无符号整型值;
+ * 函数无返回值 */
 static void
 fill_uint32(uint8_t * buf, uint32_t n) {
 	buf[0] = n & 0xff;
@@ -27,6 +30,9 @@ fill_uint32(uint8_t * buf, uint32_t n) {
 	buf[3] = (n >> 24) & 0xff;
 }
 
+/* 以大端形式向缓冲中填充长度 sz, 要求 sz 的值的范围必须在 0x10000(2 个字节)以内, 并且有足量的缓冲内存.
+ * 参数: L 为 Lua 虚拟机栈, 在此函数中未使用; buf 是缓存起点地址; sz 是长度值;
+ * 函数无返回值 */
 static void
 fill_header(lua_State *L, uint8_t *buf, int sz) {
 	assert(sz < 0x10000);
@@ -44,7 +50,7 @@ fill_header(lua_State *L, uint8_t *buf, int sz) {
 		PADDING msg(sz)
 	size > 0x8000 and address is id
 		DWORD 13
-		BYTE 1	; multireq	
+		BYTE 1	; multi req	
 		DWORD addr
 		DWORD session
 		DWORD sz
@@ -70,6 +76,13 @@ fill_header(lua_State *L, uint8_t *buf, int sz) {
 		DWORD SESSION
 		PADDING msgpart(sz)
  */
+/* 当请求的服务地址是整数时对数据进行打包, 函数依据数据的大小(是否大于等于 0x8000)决定是否需要分包.
+ * 如果不需要分包将对数据直接进行打包, 否则将只打包数据头, 而将具体每个分包的打包交由 packreq_multi 完成.
+ *
+ * 参数: L 为 Lua 虚拟机栈, 其 [1] 位置上为整形的服务地址, 并且将接收打包后的结果;
+ *      session 是当前请求的回话号; msg 是请求体内容; sz 是请求体大小;
+ *
+ * 返回: 如果不需要分包将返回 0, 否则将返回分包数; */
 static int
 packreq_number(lua_State *L, int session, void * msg, uint32_t sz) {
 	uint32_t addr = (uint32_t)lua_tointeger(L,1);
@@ -95,6 +108,14 @@ packreq_number(lua_State *L, int session, void * msg, uint32_t sz) {
 	}
 }
 
+/* 当请求的服务地址是字符串时对数据进行打包, 函数依据数据的大小(是否大于等于 0x8000)决定是否需要分包.
+ * 如果不需要分包将对数据直接进行打包, 否则将只打包数据头, 而将具体每个分包的打包交由 packreq_multi 完成.
+ * 注意: 名字的长度不能超过 255, 且不能没有名字.
+ *
+ * 参数: L 为 Lua 虚拟机栈, 其 [1] 位置上为字符串的服务地址, 并且将接收打包后的结果;
+ *      session 是当前请求的回话号; msg 是请求体内容; sz 是请求体大小;
+ *
+ * 返回: 如果不需要分包将返回 0, 否则将返回分包数; */
 static int
 packreq_string(lua_State *L, int session, void * msg, uint32_t sz) {
 	size_t namelen = 0;
@@ -129,6 +150,9 @@ packreq_string(lua_State *L, int session, void * msg, uint32_t sz) {
 	}
 }
 
+/* 打包分包, 分包数据将会压栈到 Lua 虚拟机栈的栈顶的表中, 按照顺序组成序列.
+ * 参数: L 为接收打包分包数据的 Lua 虚拟机栈; session 是当前请求的回话号; msg 当前需要打包的请求体; sz 是请求体的大小;
+ * 函数无返回值 */
 static void
 packreq_multi(lua_State *L, int session, void * msg, uint32_t sz) {
 	uint8_t buf[TEMP_LENGTH];
@@ -154,6 +178,13 @@ packreq_multi(lua_State *L, int session, void * msg, uint32_t sz) {
 	}
 }
 
+/* [lua_api] 打包一个请求体, 函数能够依据请求体的大小进行相应的分包. 请求的服务地址可以是整形也可以是字符串.
+ *
+ * 参数: string or integer [1] 请求服务的地址; integer [2] 为本次请求的回话号; light userdata [3] 为请求体;
+ *      integer [4] 是请求体的大小;
+ *
+ * 返回: string [1] 不论是否分包都将返回的第一个消息; integer [2] 下一次请求时使用的新的会话号;
+ *      table or nil [3] 仅在分包的情况下返回的后续分包数据; */
 static int
 lpackrequest(lua_State *L) {
 	void *msg = lua_touserdata(L,3);
@@ -197,12 +228,17 @@ lpackrequest(lua_State *L) {
 		string msg
 		boolean padding
  */
-
+/* 以小端方式从 buf 中解包一个无符号整数. 要求 buf 中至少有 4 个字节的内容.
+ * 参数: buf 是缓存;
+ * 返回: 解包出来的无符号整数; */
 static inline uint32_t
 unpack_uint32(const uint8_t * buf) {
 	return buf[0] | buf[1]<<8 | buf[2]<<16 | buf[3]<<24;
 }
 
+/* 解包未分包且服务地址是整数的请求体. 函数将解包得到的请求的地址、会话号以及请求体数据压栈到 Lua 虚拟机栈上.
+ * 参数: L 是 Lua 虚拟机栈用于接收解包得到的数据; buf 是由网络传递过来的缓冲数据; sz 是数据大小;
+ * 返回: int [1] 是请求服务的地址; int [2] 是会话号; string [3] 是请求体数据; */
 static int
 unpackreq_number(lua_State *L, const uint8_t * buf, int sz) {
 	if (sz < 9) {
@@ -217,6 +253,9 @@ unpackreq_number(lua_State *L, const uint8_t * buf, int sz) {
 	return 3;
 }
 
+/* 解包服务地址是整数的多分包请求体数据的第一个消息, 消息中并不包含实际的数据, 而是告知 Lua 层后边还有更多的数据.
+ * 参数: L 是 Lua 虚拟机栈用于接收解包得到的数据; buf 是由网络传递过来的缓冲数据; sz 是数据大小;
+ * 返回: int [1] 是请求服务的地址; int [2] 是会话号; int [3] 是数据的大小; boolean [4] 一定是 true 表明后续还有数据; */
 static int
 unpackmreq_number(lua_State *L, const uint8_t * buf, int sz) {
 	if (sz != 13) {
@@ -233,6 +272,11 @@ unpackmreq_number(lua_State *L, const uint8_t * buf, int sz) {
 	return 4;
 }
 
+/* 解包后续的分包数据. 同时告知 Lua 层后边是否还有后续数据.
+ * 参数: L 是 Lua 虚拟机栈用于接收解包得到的数据; buf 是由网络传递过来的缓冲数据; sz 是数据大小;
+ *
+ * 返回: boolean [1] 一定是 false 表明没有地址; integer [2] 这个请求对应的会话号; string [3] 是请求体内容;
+ *      boolean [4] 表明后续是否还有数据; */
 static int
 unpackmreq_part(lua_State *L, const uint8_t * buf, int sz) {
 	if (sz < 5) {
@@ -248,6 +292,9 @@ unpackmreq_part(lua_State *L, const uint8_t * buf, int sz) {
 	return 4;
 }
 
+/* 解包未分包且服务地址是字符串的请求体. 函数将解包得到的请求的地址、会话号以及请求体数据压栈到 Lua 虚拟机栈上.
+ * 参数: L 是 Lua 虚拟机栈用于接收解包得到的数据; buf 是由网络传递过来的缓冲数据; sz 是数据大小;
+ * 返回: string [1] 是请求服务的地址; int [2] 是会话号; string [3] 是请求体数据; */
 static int
 unpackreq_string(lua_State *L, const uint8_t * buf, int sz) {
 	if (sz < 2) {
@@ -265,6 +312,9 @@ unpackreq_string(lua_State *L, const uint8_t * buf, int sz) {
 	return 3;
 }
 
+/* 解包服务地址是字符串的多分包请求体数据的第一个消息, 消息中并不包含实际的数据, 而是告知 Lua 层后边还有更多的数据.
+ * 参数: L 是 Lua 虚拟机栈用于接收解包得到的数据; buf 是由网络传递过来的缓冲数据; sz 是数据大小;
+ * 返回: string [1] 是请求服务的地址; int [2] 是会话号; int [3] 是数据的大小; boolean [4] 一定是 true 表明后续还有数据; */
 static int
 unpackmreq_string(lua_State *L, const uint8_t * buf, int sz) {
 	if (sz < 2) {
@@ -284,6 +334,11 @@ unpackmreq_string(lua_State *L, const uint8_t * buf, int sz) {
 	return 4;
 }
 
+/* [lua_api] 对由网络传递过来的请求数据进行解包. 函数依据数据类型的不同进行不同方式的解包.
+ * 参数: light userdata [1] 请求体数据;
+ * 返回: int or string or false [1] 当为 int 时表明是整形地址, string 时表明是字符串类型地址, boolean false 表明当前是一个后续分包;
+ *       int [2] 会话号; int or string [3] 若为 int 表明后续数据的大小, string 时是数据内容;
+ *       boolean [4] 表明后续是否还有数据;  */
 static int
 lunpackrequest(lua_State *L) {
 	size_t ssz;
@@ -327,6 +382,14 @@ lunpackrequest(lua_State *L) {
 	int sz
 	return string response
  */
+/* [lua_api] 将响应数据进行打包, 打包函数会依据消息的长度进行合适的分包. 如果数据长度超过了 0x8000 时将会数据分成多个部分.
+ * 第一部分标示数据的长度, 其余部分按照 0x8000 长度分包. 所有数据将放到一个序列中返回给 Lua 层. 否则将直接打包成字符串返回.
+ * 对于出错消息将始终返回一个字符串. 打包的格式如上描述.
+ *
+ * 参数: integer [1] 为本次回复对应的回话号; boolean [2] 说明本次请求是否处理正确; string [3] 为数据内容,
+ *       或者 lightuserdata [3] 数据内容 int [4] 数据长度;
+ *
+ * 返回: string [1] 当消息长度在一个包内, 或者是错误消息时将会完全打包成一个字符串, 或者 table [1] 当数据需要分包时, 将数据打包到序列中去. */
 static int
 lpackresponse(lua_State *L) {
 	uint32_t session = (uint32_t)luaL_checkinteger(L,1);
@@ -404,6 +467,12 @@ lpackresponse(lua_State *L) {
 		string msg
 		boolean padding
  */
+/* [lua_api] 解包一个对端回复过来的数据. 函数依据数据的第 5 个字节标明的 type 对数据进行不同方式的解包.
+ *
+ * 参数: string [1] 为需要解包的数据, 对应于 lpackresponse 中单个分包;
+ *
+ * 返回: integer [1] 本次回复对应的会话号; boolean [2] 是否处理成功; string or integer [3] 表示数据内容, 或者后续数据的大小;
+ *       boolean [4] 表示是否还有后续数据; */
 static int
 lunpackresponse(lua_State *L) {
 	size_t sz;
@@ -442,6 +511,9 @@ lunpackresponse(lua_State *L) {
 	}
 }
 
+/* [lua_api] 将序列中的数据拼接起来. 要求序列的第一个元素一定是后续数据的总长度. 待拼接的序列通常是集群对端发送过来的多分包响应.
+ * 参数: table [1] 为待拼接的数据;
+ * 返回: lightuserdata [1] 是拼接起来的数据; integer [2] 是数据的大小; */
 static int
 lconcat(lua_State *L) {
 	if (!lua_istable(L,1))
