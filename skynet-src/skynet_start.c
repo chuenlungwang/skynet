@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 /* 所有工作线程的总监视对象 */
 struct monitor {
@@ -34,6 +35,15 @@ struct worker_parm {
 	int weight;                       /* 权重值, 若为正数越大表示一次性处理的消息越少,
 	                                     若为负数一次仅处理一条数据 */
 };
+
+static int SIG = 0;
+
+static void
+handle_hup(int signal) {
+	if (signal == SIGHUP) {
+		SIG = 1;
+	}
+}
 
 #define CHECK_ABORT if (skynet_context_total()==0) break;
 
@@ -64,7 +74,7 @@ thread_socket(void *p) {
 	struct monitor * m = p;
 	skynet_initthread(THREAD_SOCKET);
 	for (;;) {
-		/* 阻塞等待 socket 事件, 如果没有 socket 事件线程将一直阻塞, 
+		/* 阻塞等待 socket 事件, 如果没有 socket 事件线程将一直阻塞,
 		   当返回值为 0 将退出此线程. 当返回值小于 0 表示信息不完整将检查服务状态,
 		   当服务都退出时退出此线程, 否则继续轮询. 当返回大于 0 时, 确保至少
 		   有一条工作线程来处理此消息. */
@@ -120,6 +130,21 @@ thread_monitor(void *p) {
 	return NULL;
 }
 
+static void
+signal_hup() {
+	// make log file reopen
+
+	struct skynet_message smsg;
+	smsg.source = 0;
+	smsg.session = 0;
+	smsg.data = NULL;
+	smsg.sz = (size_t)PTYPE_SYSTEM << MESSAGE_TYPE_SHIFT;
+	uint32_t logger = skynet_handle_findname("logger");
+	if (logger) {
+		skynet_context_push(logger, &smsg);
+	}
+}
+
 /* 定时线程的函数, 在初始化之后以 2.5 毫秒的时间间隔更新定时器、触发定时事件、唤醒任意睡眠的工作线程
  * 并且检查退出条件. 当退出时将通知 socket 线程和工作线程退出. */
 static void *
@@ -132,6 +157,10 @@ thread_timer(void *p) {
 		CHECK_ABORT
 		wakeup(m,m->count-1);
 		usleep(2500);
+		if (SIG) {
+			signal_hup();
+			SIG = 0;
+		}
 	}
 	/* socket 线程有可能在阻塞等待 socket 事件而无法检查退出条件, 故需要唤醒 */
 	// wakeup socket thread
@@ -221,10 +250,10 @@ start(int thread) {
        将负值放在前面的好处在于所有消息队列均有机会被均衡执行, 而当线程更多时可以
        让它们一次充分处理一条消息队列, 随着有更多线程再稳步递减一次处理的数量.
        此方法能兼顾吞吐量和响应性. */
-	static int weight[] = { 
+	static int weight[] = {
 		-1, -1, -1, -1, 0, 0, 0, 0,
-		1, 1, 1, 1, 1, 1, 1, 1, 
-		2, 2, 2, 2, 2, 2, 2, 2, 
+		1, 1, 1, 1, 1, 1, 1, 1,
+		2, 2, 2, 2, 2, 2, 2, 2,
 		3, 3, 3, 3, 3, 3, 3, 3, };
 	struct worker_parm wp[thread];
 	for (i=0;i<thread;i++) {
@@ -241,7 +270,7 @@ start(int thread) {
 
 	/* 等待上面所创建的线程退出, 也意味着整个系统退出. */
 	for (i=0;i<thread+3;i++) {
-		pthread_join(pid[i], NULL); 
+		pthread_join(pid[i], NULL);
 	}
 
 	free_monitor(m);
@@ -268,8 +297,15 @@ bootstrap(struct skynet_context * logger, const char * cmdline) {
  * 然后启动日志服务, 随后默认执行脚本 bootstrap.lua 启动其它服务.
  * 最后启动各种线程来完成工作, 其中任何一项工作发生错误都会导致进程退出.
  * 当这些线程都退出时, 再退出 harbor 服务. 最后结束此守护进程(如果是的话) */
-void 
+void
 skynet_start(struct skynet_config * config) {
+	// register SIGHUP for log file reopen
+	struct sigaction sa;
+	sa.sa_handler = &handle_hup;
+	sa.sa_flags = SA_RESTART;
+	sigfillset(&sa.sa_mask);
+	sigaction(SIGHUP, &sa, NULL);
+
 	if (config->daemon) {
 		if (daemon_init(config->daemon)) {
 			exit(1);

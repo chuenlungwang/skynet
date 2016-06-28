@@ -654,7 +654,7 @@ seri(lua_State *L, struct block *b, int len) {
  * 参数: string/userdata 为需要解包的二进制数据; int 仅当二进制数据是用户数据时提供, 用于指示数据的长度;
  * 返回: 解包出来的 Lua 数据, 如果没有数据将返回 nil, 出错时将抛出错误. */
 int
-_luaseri_unpack(lua_State *L) {
+luaseri_unpack(lua_State *L) {
 	if (lua_isnoneornil(L,1)) {
 		return 0;
 	}
@@ -706,7 +706,7 @@ _luaseri_unpack(lua_State *L) {
  *
  * 返回: 序列化后的二进制数据和数据长度 */
 int
-_luaseri_pack(lua_State *L) {
+luaseri_pack(lua_State *L) {
 	struct block temp;
 	temp.next = NULL;
 	struct write_block wb;

@@ -1,4 +1,26 @@
-v1.0.0-rc2 (2015-3-7)
+v1.0.0-rc4 (2016-6-13)
+-----------
+* Update lua to 5.3.3
+* Update jemalloc to 4.2.1
+* Add debug console command ping
+* Lua bson support __pairs
+* Add mongo.createIndexes and fix bug in old mongo.createIndex
+* Handle signal HUP to reopen log file (for logrotate)
+
+v1.0.0-rc3 (2016-5-9)
+-----------
+* Update jemalloc 4.1.1
+* Update lua 5.3.3 rc1
+* Update sproto to support encoding empty table
+* Make skynet.init stable (keep order)
+* skynet.getenv can return empty string
+* Add lua VM memory warning
+* lua VM support memory limit
+* skynet.pcall suport varargs
+* Bugfix : Global name query
+* Bugfix : snax.queryglobal
+
+v1.0.0-rc2 (2016-3-7)
 -----------
 * Fix a bug in lua 5.3.2
 * Update sproto (fix bugs and add ud for package)

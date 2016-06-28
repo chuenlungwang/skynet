@@ -3,11 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 /* 日志器结构体 */
 struct logger {
-	FILE * handle;     /* 输出文件对象指针 */
-	int close;         /* 输出文件的状态, 1 表示需要关闭, 0 表示不再需要关闭 */
+	FILE * handle;   /* 输出文件对象指针 */
+	char * filename;
+	int close;       /* 输出文件的状态, 1 表示需要关闭, 0 表示不再需要关闭 */
 };
 
 /* 实例化日志器, 每次调用都创建一个新的日志器, 此时只分配了内存, 并执行了最初步的初始化,
@@ -19,6 +21,8 @@ logger_create(void) {
 	struct logger * inst = skynet_malloc(sizeof(*inst));
 	inst->handle = NULL;
 	inst->close = 0;
+	inst->filename = NULL;
+
 	return inst;
 }
 
@@ -31,6 +35,7 @@ logger_release(struct logger * inst) {
 	if (inst->close) {
 		fclose(inst->handle);
 	}
+	skynet_free(inst->filename);
 	skynet_free(inst);
 }
 
@@ -38,12 +43,21 @@ logger_release(struct logger * inst) {
  * 到当前日志器的输出文件中. 签名为标准服务回调函数签名. 当写入成功则返回 0, 失败返回非 0 值.
  * 此函数不是线程安全的. */
 static int
-_logger(struct skynet_context * context, void *ud, int type, int session, uint32_t source, const void * msg, size_t sz) {
+logger_cb(struct skynet_context * context, void *ud, int type, int session, uint32_t source, const void * msg, size_t sz) {
 	struct logger * inst = ud;
-	fprintf(inst->handle, "[:%08x] ",source);
-	fwrite(msg, sz , 1, inst->handle);
-	fprintf(inst->handle, "\n");
-	fflush(inst->handle);
+	switch (type) {
+	case PTYPE_SYSTEM:
+		if (inst->filename) {
+			inst->handle = freopen(inst->filename, "a", inst->handle);
+		}
+		break;
+	case PTYPE_TEXT:
+		fprintf(inst->handle, "[:%08x] ",source);
+		fwrite(msg, sz , 1, inst->handle);
+		fprintf(inst->handle, "\n");
+		fflush(inst->handle);
+		break;
+	}
 
 	return 0;
 }
@@ -59,12 +73,14 @@ logger_init(struct logger * inst, struct skynet_context *ctx, const char * parm)
 		if (inst->handle == NULL) {
 			return 1;
 		}
+		inst->filename = skynet_malloc(strlen(parm)+1);
+		strcpy(inst->filename, parm);
 		inst->close = 1;
 	} else {
 		inst->handle = stdout;
 	}
 	if (inst->handle) {
-		skynet_callback(ctx, inst, _logger);
+		skynet_callback(ctx, inst, logger_cb);
 		skynet_command(ctx, "REG", ".logger");
 		return 0;
 	}

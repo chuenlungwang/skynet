@@ -294,7 +294,7 @@ skynet_strdup(const char *str) {
  * 参数: ud 是 lua_newstate 传过来的指针, ptr 是已分配即将被回收的内存, osize 是原来的内存尺寸, nsize 是重新分配后的内存尺寸
  * 返回: 重新分配后的内存的起始地址, 如果 nsize 为 0 则返回 NULL, 如果无法完成内存分配工作也将返回 NULL . */
 void * 
-skynet_lalloc(void *ud, void *ptr, size_t osize, size_t nsize) {
+skynet_lalloc(void *ptr, size_t osize, size_t nsize) {
 	if (nsize == 0) {
 		raw_free(ptr);
 		return NULL;

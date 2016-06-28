@@ -43,7 +43,7 @@ local env_mt = { __index = _ENV }
 
 --[[ 以名字 name 构建表 t 的 skynet 定义的表结构. t 可以是以 @ 开头的文件或者是代码块,
 或者 nil(此时表为空表), 其它类型的值将抛出错误. ]]
-function CMD.new(name, t)
+function CMD.new(name, t, ...)
 	local dt = type(t)
 	local value
 	if dt == "table" then
@@ -56,7 +56,7 @@ function CMD.new(name, t)
 		else
 			f = assert(load(t, "=" .. name, "bt", value))
 		end
-		local _, ret = assert(skynet.pcall(f))
+		local _, ret = assert(skynet.pcall(f, ...))
 		setmetatable(value, nil)
 		if type(ret) == "table" then
 			value = ret
@@ -101,7 +101,7 @@ end
 
 --[[ 将名字 name 对应的表结构更新为新表 t. 更新表将会减小旧表的引用,
 并在有监控客户端的情况下, 标记旧表结构为脏. 然后通知所有的监控客户端. ]]
-function CMD.update(name, t)
+function CMD.update(name, t, ...)
 	local v = pool[name]
 	local watch, oldcobj
 	if v then
@@ -112,7 +112,7 @@ function CMD.update(name, t)
 		pool[name] = nil
 		pool_count[name] = nil
 	end
-	CMD.new(name, t)
+	CMD.new(name, t, ...)
 	local newobj = pool[name].obj
 	if watch then
 		sharedata.host.markdirty(oldcobj)
