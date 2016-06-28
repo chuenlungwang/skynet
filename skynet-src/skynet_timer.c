@@ -59,7 +59,7 @@ struct timer {
 	                              而 current 的初始值与墙上时钟有关, time 每次只增加 1 厘秒, 并且伴随着定时事件触发,
 	                              具体参见 timer_shift 函数 */
 	uint32_t starttime;        /* 系统启动时间点, 单位秒 */
-	uint32_t current;          /* 当前时间, 单位厘秒, 与 starttime 一起构成了墙上时钟 */
+	uint64_t current;          /* 当前时间, 单位厘秒, 与 starttime 一起构成了墙上时钟 */
 	uint64_t current_point;    /* 当前时间的精确时间戳, 单位厘秒, 不会回绕, 用于计算系统运行时间 */
 };
 

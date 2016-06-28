@@ -335,7 +335,7 @@ unpackmreq_string(lua_State *L, const uint8_t * buf, int sz) {
 }
 
 /* [lua_api] 对由网络传递过来的请求数据进行解包. 函数依据数据类型的不同进行不同方式的解包.
- * 参数: light userdata [1] 请求体数据;
+ * 参数: string [1] 请求体数据;
  * 返回: int or string or false [1] 当为 int 时表明是整形地址, string 时表明是字符串类型地址, boolean false 表明当前是一个后续分包;
  *       int [2] 会话号; int or string [3] 若为 int 表明后续数据的大小, string 时是数据内容;
  *       boolean [4] 表明后续是否还有数据;  */
